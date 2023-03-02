@@ -78,7 +78,7 @@ namespace WF_Gestao_Estoque_Gastos
                         LoginAutomatico(empresa.Id, id);
                     else
                         LoginAutomatico(empresa.Id);
-                    GerenciarTela.AbrirTelaEFecharAtual(new FrmPrincipal(id, form), form, true);
+                    GerenciarTela.AbrirTelaEFecharAtual(new FrmPrincipal(form), form, true);
                 }
                 else
                     ExibirMensagem.Aviso("Usuário e/ou senha incorretos.");
@@ -321,6 +321,9 @@ namespace WF_Gestao_Estoque_Gastos
 
         public Usuario RetornaUsuarioLogado(int id)
         {
+            var usuarioLogado = DadosUsuario.GetUsuario();
+            if (usuarioLogado.Id != 0)
+                return usuarioLogado;
             try
             {
                 var usuario = txtUsuario.Text;
@@ -334,7 +337,7 @@ namespace WF_Gestao_Estoque_Gastos
                     var ativo = Int16.Parse( reader["ativo"].ToString() );
                     var acesso = int.Parse(reader["acesso"].ToString());
                     var logado   = int.Parse(reader["manterlogado"].ToString());
-                    return new Usuario()
+                    var usuarioObj = new Usuario()
                     {
                         Id = int.Parse(reader["id"].ToString()),
                         Nome = reader["nome"].ToString(),
@@ -345,6 +348,8 @@ namespace WF_Gestao_Estoque_Gastos
                         Ativo = ativo == 1,
                         EmpresaId = int.Parse(reader["empresaid"].ToString())
                     };
+                    usuarioObj.PreencheDadosUsuario();
+                    return usuarioObj;
                 }
 
             }

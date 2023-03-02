@@ -139,6 +139,7 @@ CREATE TABLE `tblpais` (
 --
 
 CREATE TABLE `tblparametros` (
+  `id` int(11) NOT NULL ,
   `percentualLucro` float(10,0) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

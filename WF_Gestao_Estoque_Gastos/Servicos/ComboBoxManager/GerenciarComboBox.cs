@@ -22,9 +22,10 @@ namespace WF_Gestao_Estoque_Gastos.Servicos.ComboBoxManager
             combo.SelectedIndex = -1;
         }
 
-        public static void Selecionar(ComboBox combo, string value)
+        public static void Selecionar(ComboBox combo, string nomeCompleto)
         {
-            combo.SelectedValue = Convert.ToInt64(value);
+            var indice = combo.FindStringExact(nomeCompleto);
+            combo.SelectedIndex = indice;
         }
 
         public static void Preencher(ComboBox combo, List<Entidade> lista, string descricao, string id = "Id")
@@ -32,6 +33,7 @@ namespace WF_Gestao_Estoque_Gastos.Servicos.ComboBoxManager
             combo.DataSource    = lista;
             combo.DisplayMember = descricao;
             combo.ValueMember   = id.ToString();
+            combo.Text = "Selecione ...";
         }
     }
 }

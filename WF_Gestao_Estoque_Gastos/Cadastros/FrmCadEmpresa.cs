@@ -2,6 +2,7 @@
 using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Forms;
 using WF_Gestao_Estoque_Gastos.Conexao.Cidade;
 using WF_Gestao_Estoque_Gastos.Servicos.ComboBoxManager;
@@ -14,14 +15,16 @@ namespace WF_Gestao_Estoque_Gastos.Cadastros
         MySqlConnection con;
         MySqlCommand cmd;
         MySqlDataReader reader;
-
+        public bool listEmpresaSelecionado { get; set; }
         private string _colunaIdCidade = "idcidade";
+        private string cnpjAntesDeAlterar;
+
         public FrmCadEmpresa()
         {
             con = new MySqlConnection("server=localhost;database=gestao_estoque_gasto;pwd=;uid=root;");
 
             InitializeComponent();
-            atualizar_lista();
+            
         }
 
         private void LimpaCampos()
@@ -36,7 +39,8 @@ namespace WF_Gestao_Estoque_Gastos.Cadastros
             mtxtComplemento.Text = String.Empty;
             mtxtNumero.Text = String.Empty;
             mtxtRua.Text = String.Empty;
-
+            listEmpresaSelecionado = false;
+            cnpjAntesDeAlterar = "";
         }
 
         private void materialLabel9_Click(object sender, EventArgs e)
@@ -47,7 +51,6 @@ namespace WF_Gestao_Estoque_Gastos.Cadastros
         private void materialRaisedButton1_Click(object sender, EventArgs e) // btnSalvar
         {
 
-            string retornoCnpj = null;
             string razaoSocial = mtxtRazaoSocial.Text;
             string nomeFantasia = mtxtNomeFantasia.Text;
             
@@ -55,9 +58,11 @@ namespace WF_Gestao_Estoque_Gastos.Cadastros
             CNPJ = ValidarCampos.RemoveMaskaraCnpj(CNPJ);
             if (!ValidarString.CampoApenasNumerico(CNPJ) && CNPJ.Length == 14)
             {
-                ExibirMensagem.Aviso("Digite apenas Numeros, e apenas 14") ;
+                ExibirMensagem.Aviso("Digite apenas Numeros, e apenas 14");
                 return;
             }
+            else if (CNPJ.Length == 0)
+                return;
             CNPJ = ValidarCampos.FormatCNPJ(CNPJ); // trata cnpj
 
             CNPJ = ValidarCampos.RemoverPontosHifensEBarra(CNPJ);
@@ -65,6 +70,10 @@ namespace WF_Gestao_Estoque_Gastos.Cadastros
             telefone = ValidarCampos.RemoveMaskaraTelefone(mtxtTelefone.Text);
             if (!ValidarString.CampoApenasNumerico(telefone)){
                 ExibirMensagem.Erro("Preencha o telefone apenas com números!");
+                return;
+            }else if(telefone.Length != 11)
+            {
+                ExibirMensagem.Erro("Telefone Precisa de 11 números!");
                 return;
             }
 
@@ -85,26 +94,28 @@ namespace WF_Gestao_Estoque_Gastos.Cadastros
             string rua = mtxtRua.Text;
 
             try
-            { 
+            {
                 con.Open();
                 cmd = con.CreateCommand();
 
-                cmd.CommandText = "SELECT CNPJ FROM tblempresa WHERE CNPJ = @CNPJ";
-                cmd.Parameters.AddWithValue("CNPJ", CNPJ);
+                cmd.CommandText = $"SELECT id FROM tblempresa WHERE CNPJ = '{cnpjAntesDeAlterar}' ";
                 reader = cmd.ExecuteReader();
-
+                var idEmpresa = 0;
+                var existeCnpj = false;
                 while (reader.Read())
                 {
-                     retornoCnpj = reader["CNPJ"].ToString();
+                    idEmpresa = Convert.ToInt32(reader["id"].ToString()); 
+                    existeCnpj = true;
+                    listEmpresaSelecionado = true;
                 };
                 con.Close();
-                if (retornoCnpj != null)
+                if (listEmpresaSelecionado)
                 {
                     con.Open();
 
                     cmd = con.CreateCommand();
 
-                    cmd.CommandText = $"UPDATE tblempresa SET CNPJ = @CNPJ, razaoSocial = @razaoSocial, rua = @rua, bairro = @bairro, numeroEndereco = @numeroResidencia, complemento = @complemento, email = @email, telefone = @telefone, nomeFantasia = @nomeFantasia, {_colunaIdCidade} = @idcidade WHERE CNPJ = @CNPJ";
+                    cmd.CommandText = $"UPDATE tblempresa SET CNPJ = @CNPJ, razaoSocial = @razaoSocial, rua = @rua, bairro = @bairro, numeroEndereco = @numeroResidencia, complemento = @complemento, email = @email, telefone = @telefone, nomeFantasia = @nomeFantasia, {_colunaIdCidade} = @idcidade WHERE id ={idEmpresa} ";
 
                     cmd.Parameters.AddWithValue("CNPJ", CNPJ);
                     cmd.Parameters.AddWithValue("razaoSocial", razaoSocial);
@@ -113,6 +124,8 @@ namespace WF_Gestao_Estoque_Gastos.Cadastros
                     cmd.Parameters.AddWithValue("numeroResidencia", numeroResidencia);
                     cmd.Parameters.AddWithValue("complemento", complemento);
                     cmd.Parameters.AddWithValue("email", email);
+
+                    telefone = ValidarCampos.RemoveMaskaraTelefone(telefone);
                     cmd.Parameters.AddWithValue("telefone", telefone);
                     cmd.Parameters.AddWithValue("nomeFantasia", nomeFantasia);
                     cmd.Parameters.AddWithValue(_colunaIdCidade, idCidade);
@@ -174,8 +187,8 @@ namespace WF_Gestao_Estoque_Gastos.Cadastros
 
         public void Excluir_empresa()
         {
-            var CNPJEmpresa = Convert.ToDecimal(mtxtCnpj.Text);
 
+            var CNPJEmpresa = ValidarCampos.RemoveMaskaraCnpj(mtxtCnpj.Text);
 
             if (listViewEmpresa.SelectedIndices.Count <= 0)
             {
@@ -233,7 +246,7 @@ namespace WF_Gestao_Estoque_Gastos.Cadastros
                 var numeroResidencia = Convert.ToInt32(reader["numeroEndereco"].ToString());
 
                 var complemento = reader["complemento"].ToString();
-                var cidade = reader[$"{_colunaIdCidade}"].ToString();
+                var Idcidade = reader[$"{_colunaIdCidade}"].ToString();
                 var rua = reader["rua"].ToString();
                 var bairro = reader["bairro"].ToString();
                 var razaoSocial = reader["razaoSocial"].ToString();
@@ -247,7 +260,7 @@ namespace WF_Gestao_Estoque_Gastos.Cadastros
                     telefone = telefone,
                     numeroResidencia = numeroResidencia,
                     complemento = complemento,
-                    cidade = cidade,
+                    cidade = Idcidade,
                     rua = rua,
                     bairro = bairro,
                     razaoSocial = razaoSocial,
@@ -283,6 +296,7 @@ namespace WF_Gestao_Estoque_Gastos.Cadastros
 
             if (listViewEmpresa.SelectedIndices.Count <= 0)
             {
+                cnpjAntesDeAlterar = "";
                 return;
             }
             else
@@ -290,6 +304,7 @@ namespace WF_Gestao_Estoque_Gastos.Cadastros
                 btnCancelar.Visible = true;
                 mtxtId.Visible = true;
                 lblCodigo.Visible = true;
+                listEmpresaSelecionado = true;
             }
 
             var itemSelecionado = Convert.ToInt32(listViewEmpresa.SelectedIndices[0]);
@@ -314,14 +329,21 @@ namespace WF_Gestao_Estoque_Gastos.Cadastros
 
             var complemento = (listViewEmpresa.Items[itemSelecionado].SubItems[9].Text);
                                  
-            var cidade = (listViewEmpresa.Items[itemSelecionado].SubItems[10].Text);
+            var Idcidade = (listViewEmpresa.Items[itemSelecionado].SubItems[10].Text);
+
+            var cidade = MetodosTblCidade.RetornaTodasCidades().Where(cid => cid.Id == int.Parse(Idcidade));
+            
+            var retorno = cidade.FirstOrDefault(); 
 
             mtxtRazaoSocial.Text = razaoSocial.ToString();
             mtxtNomeFantasia.Text = nomeFantasia.ToString();
             mtxtCnpj.Text = ValidarCampos.FormatCNPJ(cnpj.ToString());
+            cnpjAntesDeAlterar = ValidarCampos.RemoveMaskaraCnpj(mtxtCnpj.Text);
+
             mtxtTelefone.Text = ValidarCampos.FormatarTelefone(telefone.ToString());
             mtxtEmail.Text = email.ToString();
-            GerenciarComboBox<Cidade>.Selecionar(cbxCidade, cidade);
+            if(retorno != null)
+                GerenciarComboBox<Cidade>.Selecionar(cbxCidade, retorno.DescricaoCidade);
             mtxtBairro.Text = bairro.ToString();
             mtxtComplemento.Text = complemento.ToString();
             mtxtNumero.Text = numeroEndereco.ToString();
@@ -392,6 +414,8 @@ namespace WF_Gestao_Estoque_Gastos.Cadastros
         {
             var listaCidade = MetodosTblCidade.RetornaTodasCidades();   
             GerenciarComboBox<Cidade>.Preencher(cbxCidade, listaCidade, "DescricaoCidade");
+            atualizar_lista();
+            LimpaCampos();
         }
     }
 }

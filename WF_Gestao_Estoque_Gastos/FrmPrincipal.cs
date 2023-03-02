@@ -9,34 +9,26 @@ namespace WF_Gestao_Estoque_Gastos
     public partial class FrmPrincipal : MaterialForm
     {
         FrmLogin FormLogin;
-        private Usuario usuarioLogado;
+        public Usuario usuario;
         public FrmPrincipal()
         {
             InitializeComponent();
             this.CenterToScreen();
-        }
-        public FrmPrincipal(int id)
-        {
-            InitializeComponent();
-            this.CenterToScreen();
-            PreencheUsuario(id);
+            PreencheUsuario();
         }
 
-        public FrmPrincipal(int id, FrmLogin formLogin)
+        public FrmPrincipal(FrmLogin formLogin)
         {
             FormLogin = formLogin;
             InitializeComponent();
             this.CenterToScreen();
-            PreencheUsuario(id);
+            PreencheUsuario();
         }
         
-        private void PreencheUsuario(int id)
+        private void PreencheUsuario()
         {
-            usuarioLogado = FormLogin.RetornaUsuarioLogado(id);
-            if(usuarioLogado != null)
-            {
-                lblNomeUsuario.Text = "Usuário: " + usuarioLogado.Nome;
-            }
+            usuario = DadosUsuario.GetUsuario();
+            lblNomeUsuario.Text = "Usuário: " + usuario.Nome;
         }
         private void FrmPrincipal_Load(object sender, EventArgs e)
         {
@@ -69,7 +61,7 @@ namespace WF_Gestao_Estoque_Gastos
 
         private void deslogarToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            FormLogin.LoginAutomatico(usuarioLogado.EmpresaId);
+            FormLogin.LoginAutomatico(DadosUsuario.EmpresaId);
             FormLogin.LimparCampos();
             this.Close();
         }
